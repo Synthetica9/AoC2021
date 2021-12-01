@@ -15,7 +15,7 @@ def window(it, size=3, op=sum):
     for i in it:
         d.append(i)
         if len(d) == size:
-            yield (op(d))
+            yield op(d)
 
 
 def solve(it):
