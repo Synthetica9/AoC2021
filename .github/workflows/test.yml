@@ -6,9 +6,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      NIX_PATH: nixpkgs=https://github.com/nixos/nixpkgs/archive/nixpkgs-unstable.tar.gz
     steps:
       - uses: cachix/install-nix-action@v16
       - uses: actions/checkout@v2
-      - run: make
+      - run: nix-build
