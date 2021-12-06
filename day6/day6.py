@@ -11,14 +11,14 @@ def solve(file, days=80):
     xs = parse(file)
     c = Counter(xs)
     for day in range(days):
-        new_c = Counter()
-        for (n, x) in c.items():
+        it = list(c.items())
+        c = Counter()
+        for (n, x) in it:
             if n == 0:
-                new_c[6] += x
-                new_c[8] += x
+                c[6] += x
+                c[8] += x
             else:
-                new_c[n - 1] += x
-        c = new_c
+                c[n - 1] += x
 
     return sum(c.values())
 
