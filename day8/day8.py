@@ -81,7 +81,6 @@ def apply(segments, bt):
 def part2(file):
     n = 0
     for signals, segments in parse(file):
-        signals = sorted(signals, key=len)
         # (sol,) = backtrack(signals)
         sol = next(backtrack(signals))
         n += apply(segments, sol)
@@ -89,13 +88,9 @@ def part2(file):
 
 
 def part1(file):
-    n = 0
-    for signals, segments in parse(file):
-        for seg in segments:
-            print(seg)
-            if len(seg) in {2, 4, 3, 7}:
-                n += 1
-    return n
+    return sum(
+        len(seg) in {2, 4, 3, 7} for signal, segments in parse(file) for seg in segments
+    )
 
 
 def getopts():
