@@ -55,6 +55,8 @@ def backtrack(signals, bt=None):
     for char in "abcdefg":
         if char not in bt:
             break
+    else:
+        yield bt.copy()
 
     for translation in "abcdefg":
         if translation in bt.values():
@@ -62,10 +64,7 @@ def backtrack(signals, bt=None):
 
         bt[char] = translation
         if isValid(signals, bt):
-            if all(char in bt for signal in signals for char in signal):
-                yield bt.copy()
-            else:
-                yield from backtrack(signals, bt)
+            yield from backtrack(signals, bt)
         del bt[char]
 
 
