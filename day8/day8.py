@@ -82,8 +82,8 @@ def part2(file):
     n = 0
     for signals, segments in parse(file):
         signals = sorted(signals, key=len)
-        (sol,) = backtrack(signals)
-        # print(sol)
+        # (sol,) = backtrack(signals)
+        sol = next(backtrack(signals))
         n += apply(segments, sol)
     return n
 
