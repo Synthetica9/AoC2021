@@ -15,7 +15,7 @@ def getopts():
 def main():
     opts = getopts()
     for file in opts.files:
-        solve(file)
+        print(solve(file))
 
 
 if __name__ == "__main__":
