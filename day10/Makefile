@@ -6,4 +6,4 @@ task_1:
 	python day10.py input | grep 344193
 
 task_2:
-	python day10.py input | grep 3241238967
+	python day10.py input --part2 | grep 3241238967
