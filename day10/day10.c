@@ -4,55 +4,40 @@
 #define STACK_SIZE 1024
 #define BUFF_SIZE 1024
 
-enum Paren {
-  Round = 1,
-  Square,
-  Curly,
-  Pointy,
-};
-
-enum Paren STACK[STACK_SIZE];
+char STACK[STACK_SIZE];
 char BUFF[BUFF_SIZE];
 
-enum Paren to_enum(char p) {
+static inline char matching(char p) {
   switch (p) {
   case '(':
-  case ')':
-    return Round;
-  case '[':
-  case ']':
-    return Square;
-  case '{':
-  case '}':
-    return Curly;
-  case '<':
-  case '>':
-    return Pointy;
-  }
-}
-
-inline char closing_char(enum Paren p) {
-  switch (p) {
-  case Round:
     return ')';
-  case Square:
+  case '[':
     return ']';
-  case Curly:
+  case '{':
     return '}';
-  case Pointy:
+  case '<':
     return '>';
+
+  case ')':
+    return '(';
+  case ']':
+    return '[';
+  case '}':
+    return '{';
+  case '>':
+    return '<';
   }
 }
 
-inline long get_score(enum Paren p) {
-  switch (p) {
-  case Round:
+static inline long get_score(char c) {
+  switch (c) {
+  case ')':
     return 3;
-  case Square:
+  case ']':
     return 57;
-  case Curly:
+  case '}':
     return 1197;
-  case Pointy:
+  case '>':
     return 25137;
   }
 }
@@ -68,6 +53,7 @@ int main(int argc, char **argv) {
     printf("Could not open %s\n", argv[1]);
     return 2;
   }
+
   int i = 0;
   long score = 0;
   bool seeking_newline = false;
@@ -75,15 +61,12 @@ int main(int argc, char **argv) {
 
   while (true) {
     char c = BUFF[i++];
-    if (seeking_newline && c) {
+    if (seeking_newline && c != '\n') {
       continue;
     }
     seeking_newline = false;
     switch (c) {
     case EOF:
-      printf("score: %ld\n", score);
-      return 0;
-
     case '\0':
       if (fgets(BUFF, BUFF_SIZE, fp) == NULL) {
         printf("score: %ld\n", score);
@@ -96,15 +79,15 @@ int main(int argc, char **argv) {
     case '[':
     case '{':
     case '<':
-      STACK[++stack_idx] = to_enum(c);
+      STACK[++stack_idx] = matching(c);
       break;
 
     case ')':
     case ']':
     case '}':
     case '>':
-      if (STACK[stack_idx--] != to_enum(c)) {
-        score += get_score(to_enum(c));
+      if (STACK[stack_idx--] != c) {
+        score += get_score(c);
         seeking_newline = true;
       }
 
