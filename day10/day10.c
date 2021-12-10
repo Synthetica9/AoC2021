@@ -17,15 +17,6 @@ static inline char matching(char p) {
     return '}';
   case '<':
     return '>';
-
-  case ')':
-    return '(';
-  case ']':
-    return '[';
-  case '}':
-    return '{';
-  case '>':
-    return '<';
   }
 }
 
