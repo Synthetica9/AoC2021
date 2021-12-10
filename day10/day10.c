@@ -69,9 +69,14 @@ int main(int argc, char **argv) {
     case '(':
     case '[':
     case '{':
-    case '<':
-      STACK[++stack_idx] = matching(c);
+    case '<': {
+      char other = matching(c);
+
+      if (BUFF[i + 1] != other) {
+        STACK[++stack_idx] = matching(c);
+      }
       break;
+    }
 
     case ')':
     case ']':
