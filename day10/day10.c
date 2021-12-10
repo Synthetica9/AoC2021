@@ -17,6 +17,8 @@ static inline char matching(char p) {
     return '}';
   case '<':
     return '>';
+  default:
+    return '\0';
   }
 }
 
@@ -30,6 +32,8 @@ static inline long get_score(char c) {
     return 1197;
   case '>':
     return 25137;
+  default:
+    return 0;
   }
 }
 
@@ -48,7 +52,10 @@ int main(int argc, char **argv) {
   int i = 0;
   long score = 0;
   bool seeking_newline = false;
-  int stack_idx = 0;
+
+  // Start at one, make "real" bottom of stack a sentinel value;
+  int stack_idx = 1;
+  STACK[0] = 0xFF;
 
   while (true) {
     char c = BUFF[i++];
@@ -72,8 +79,10 @@ int main(int argc, char **argv) {
     case '<': {
       char other = matching(c);
 
-      if (BUFF[i + 1] != other) {
-        STACK[++stack_idx] = matching(c);
+      // Shortcut: if we immediately close: skip both and don't use the stack.
+      if (BUFF[i + 1] && BUFF[i + 1] != other) {
+        STACK[++stack_idx] = other;
+        i++;
       }
       break;
     }
@@ -90,7 +99,7 @@ int main(int argc, char **argv) {
       break;
 
     case '\n':
-      stack_idx = 0;
+      stack_idx = 1;
       break;
     }
   }
