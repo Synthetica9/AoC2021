@@ -28,7 +28,7 @@ def scalar_mult(n, c):
     return Counter({k: n * v for (k, v) in c.items()})
 
 
-def square(replacements):
+def double(replacements):
     new_replacements = {}
     for k, v in replacements.items():
         ctr = Counter()
@@ -56,7 +56,7 @@ def solve(file, n=40):
         # print(pairs)
         if b:
             pairs = step(pairs, replacements)
-        replacements = square(replacements)
+        replacements = double(replacements)
 
     elements = Counter()
     for (a, b), v in pairs.items():
