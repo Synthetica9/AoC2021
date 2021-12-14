@@ -6,6 +6,8 @@ from itertools import pairwise
 from collections import Counter
 from math import ceil
 
+from functools import cache
+
 
 def parse(file):
     first_line = next(file).strip()
@@ -28,38 +30,39 @@ def scalar_mult(n, c):
     return Counter({k: n * v for (k, v) in c.items()})
 
 
-def double(replacements):
-    new_replacements = {}
-    for k, v in replacements.items():
-        ctr = Counter()
-        for p, count in v.items():
-            ctr.update(scalar_mult(count, replacements[p]))
-        new_replacements[k] = ctr
-    return new_replacements
+def multistep(n, pairs, replacements):
+    @cache
+    def steps(n, pair):
+        if n == 0:
+            return Counter([pair])
 
+        if n == 1:
+            return replacements[pair]
 
-def step(sequence, replacements):
-    new_sequence = Counter()
-    for k, v in sequence.items():
-        new_sequence.update(scalar_mult(v, replacements[k]))
-    return new_sequence
+        outer = n // 2
+        inner = n - outer
+        # print(n, outer, inner)
 
+        ctr = steps(outer, pair)
+        res = Counter()
+        for p, n in ctr.items():
+            other = steps(inner, p)
+            res.update(scalar_mult(n, other))
+        return res
 
-def bits(n):
-    return [bool(int(x)) for x in bin(n)[2:]][::-1]
+    res = Counter()
+
+    for pair, count in pairs.items():
+        res.update(scalar_mult(count, steps(n, pair)))
+
+    return res
 
 
 def solve(file, n=40):
     pairs, replacements, last_elem = parse(file)
-    print(bits(n))
-    for b in bits(n):
-        # print(pairs)
-        if b:
-            pairs = step(pairs, replacements)
-        replacements = double(replacements)
-
+    res = multistep(n, pairs, replacements)
     elements = Counter()
-    for (a, b), v in pairs.items():
+    for (a, b), v in res.items():
         elements[a] += v
     elements[last_elem] += 1
 
