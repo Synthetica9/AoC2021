@@ -18,27 +18,45 @@ def parse(file):
         if not line:
             continue
 
-        a, b = line.split(" -> ")
-        replacements[tuple(a)] = b
+        (a, c), b = line.split(" -> ")
+        replacements[(a, c)] = Counter([(a, b), (b, c)])
 
     return initial, replacements, last_elem
 
 
+def scalar_mult(n, c):
+    return Counter({k: n * v for (k, v) in c.items()})
+
+
+def square(replacements):
+    new_replacements = {}
+    for k, v in replacements.items():
+        ctr = Counter()
+        for p, count in v.items():
+            ctr.update(scalar_mult(count, replacements[p]))
+        new_replacements[k] = ctr
+    return new_replacements
+
+
 def step(sequence, replacements):
     new_sequence = Counter()
-    for (a, c), v in sequence.items():
-        b = replacements[(a, c)]
-        new_sequence[(a, b)] += v
-        new_sequence[(b, c)] += v
+    for k, v in sequence.items():
+        new_sequence.update(scalar_mult(v, replacements[k]))
     return new_sequence
+
+
+def bits(n):
+    return [bool(int(x)) for x in bin(n)[2:]][::-1]
 
 
 def solve(file, n=40):
     pairs, replacements, last_elem = parse(file)
-
-    for i in range(n):
+    print(bits(n))
+    for b in bits(n):
         # print(pairs)
-        pairs = step(pairs, replacements)
+        if b:
+            pairs = step(pairs, replacements)
+        replacements = square(replacements)
 
     elements = Counter()
     for (a, b), v in pairs.items():
