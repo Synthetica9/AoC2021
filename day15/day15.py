@@ -29,22 +29,17 @@ def extend(grid, factor):
     return new_grid
 
 
-def safe_index(xs, i, j):
-    if i < 0 or j < 0:
-        return None
-    try:
-        return xs[i][j]
-    except IndexError:
-        return None
+def is_index(xs, i, j):
+    return 0 <= i < len(xs) and 0 <= j < len(xs[i])
 
 
 def neighbor_indexes(xs, p):
     i, j = p
-    return [
+    return (
         (i + dx, j + dy)
-        for (dx, dy) in [(0, 1), (1, 0), (-1, 0), (0, -1), (0, 0)]
-        if safe_index(xs, i + dx, j + dy) is not None
-    ]
+        for (dx, dy) in [(0, 1), (1, 0), (-1, 0), (0, -1)]
+        if is_index(xs, i + dx, j + dy)
+    )
 
 
 def solve(file, factor=1):
@@ -58,7 +53,6 @@ def solve(file, factor=1):
         frontier = []
         heapq.heappush(frontier, (0, (0, 0)))
         visited = set()
-        print(visited)
         while frontier:
             danger, curr = heapq.heappop(frontier)
             if curr in visited:
@@ -68,6 +62,8 @@ def solve(file, factor=1):
                 return danger
 
             for neighbor in neighbor_indexes(grid, curr):
+                if neighbor in visited:
+                    continue
                 x, y = neighbor
                 heapq.heappush(frontier, (danger + grid[y][x], neighbor))
         assert False
