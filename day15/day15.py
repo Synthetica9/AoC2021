@@ -1,0 +1,90 @@
+from argparse import ArgumentParser, FileType
+from sys import stdin
+import heapq
+from pprint import pprint
+
+
+def parse(file):
+    grid = []
+    for line in file:
+        line = line.strip()
+        if not line:
+            continue
+
+        grid.append([int(x) for x in line])
+    return grid
+
+
+def extend(grid, factor):
+    new_grid = []
+    for line in grid:
+        new_grid.append([])
+        for i in range(factor):
+            new_grid[-1].extend([(n + i - 1) % 9 + 1 for n in line])
+
+    template = new_grid.copy()
+    for i in range(1, factor):
+        for line in template:
+            new_grid.append([(n + i - 1) % 9 + 1 for n in line])
+    return new_grid
+
+
+def safe_index(xs, i, j):
+    if i < 0 or j < 0:
+        return None
+    try:
+        return xs[i][j]
+    except IndexError:
+        return None
+
+
+def neighbor_indexes(xs, p):
+    i, j = p
+    return [
+        (i + dx, j + dy)
+        for (dx, dy) in [(0, 1), (1, 0), (-1, 0), (0, -1), (0, 0)]
+        if safe_index(xs, i + dx, j + dy) is not None
+    ]
+
+
+def solve(file, factor=1):
+    grid = parse(file)
+
+    grid = extend(grid, 5)
+
+    dest = len(grid) - 1, len(grid[0]) - 1
+
+    def search(dest):
+        frontier = []
+        heapq.heappush(frontier, (0, (0, 0)))
+        visited = set()
+        while frontier:
+            danger, curr = heapq.heappop(frontier)
+            if curr in visited:
+                continue
+            visited.add(curr)
+            if curr == dest:
+                return danger
+
+            for neighbor in neighbor_indexes(grid, curr):
+                x, y = neighbor
+                heapq.heappush(frontier, (danger + grid[y][x], neighbor))
+        assert False
+
+    return search(dest)
+
+
+def getopts():
+    opts = ArgumentParser()
+    opts.add_argument("files", nargs="*", default=[stdin], type=FileType("r"))
+    return opts.parse_args()
+
+
+def main():
+    opts = getopts()
+    for file in opts.files:
+        print(solve(file))
+
+
+if __name__ == "__main__":
+    main()
