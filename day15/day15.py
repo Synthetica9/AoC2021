@@ -42,33 +42,31 @@ def neighbor_indexes(xs, p):
     )
 
 
+def search(dest, grid):
+    frontier = []
+    heapq.heappush(frontier, (0, (0, 0)))
+    visited = set()
+    while frontier:
+        danger, curr = heapq.heappop(frontier)
+        if curr in visited:
+            continue
+        visited.add(curr)
+        if curr == dest:
+            return danger
+
+        for neighbor in neighbor_indexes(grid, curr):
+            if neighbor in visited:
+                continue
+            x, y = neighbor
+            heapq.heappush(frontier, (danger + grid[y][x], neighbor))
+    assert False
+
+
 def solve(file, factor=1):
     grid = parse(file)
-
     grid = extend(grid, factor)
-
     dest = len(grid) - 1, len(grid[0]) - 1
-
-    def search(dest):
-        frontier = []
-        heapq.heappush(frontier, (0, (0, 0)))
-        visited = set()
-        while frontier:
-            danger, curr = heapq.heappop(frontier)
-            if curr in visited:
-                continue
-            visited.add(curr)
-            if curr == dest:
-                return danger
-
-            for neighbor in neighbor_indexes(grid, curr):
-                if neighbor in visited:
-                    continue
-                x, y = neighbor
-                heapq.heappush(frontier, (danger + grid[y][x], neighbor))
-        assert False
-
-    return search(dest)
+    return search(dest, grid)
 
 
 def getopts():
