@@ -6,4 +6,4 @@ task_1:
 	python day15.py input | grep 410
 
 task_2:
-	python day15.py input | grep 2809
+	python day15.py input --extend 5 | grep 2809

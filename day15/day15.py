@@ -58,6 +58,7 @@ def solve(file, factor=1):
         frontier = []
         heapq.heappush(frontier, (0, (0, 0)))
         visited = set()
+        print(visited)
         while frontier:
             danger, curr = heapq.heappop(frontier)
             if curr in visited:
