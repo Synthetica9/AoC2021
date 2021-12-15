@@ -50,7 +50,7 @@ def neighbor_indexes(xs, p):
 def solve(file, factor=1):
     grid = parse(file)
 
-    grid = extend(grid, 5)
+    grid = extend(grid, factor)
 
     dest = len(grid) - 1, len(grid[0]) - 1
 
@@ -77,13 +77,14 @@ def solve(file, factor=1):
 def getopts():
     opts = ArgumentParser()
     opts.add_argument("files", nargs="*", default=[stdin], type=FileType("r"))
+    opts.add_argument("--extend", type=int, default=1)
     return opts.parse_args()
 
 
 def main():
     opts = getopts()
     for file in opts.files:
-        print(solve(file))
+        print(solve(file, opts.extend))
 
 
 if __name__ == "__main__":
