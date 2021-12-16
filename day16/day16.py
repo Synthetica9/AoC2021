@@ -86,10 +86,6 @@ def parse(source):
         yield packet
 
 
-def fail(xs):
-    assert False
-
-
 def make_star(op):
     return wraps(op)(lambda xs: op(*xs))
 
@@ -99,7 +95,7 @@ OPCODES = {
     1: prod,
     2: min,
     3: max,
-    4: fail,  # Unique case
+    4: None,  # Unique case
     5: make_star(operator.gt),
     6: make_star(operator.lt),
     7: make_star(operator.eq),
