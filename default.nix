@@ -4,6 +4,8 @@ let
 
   inherit (pkgs) lib jq runCommand python310 gnumake;
 
+  myPython = python310.withPackages (p: with p; [more-itertools]);
+
   src = ./.;
   days = lib.importJSON
     (pkgs.runCommand "out.json" { buildInputs = [ pkgs.jq ]; } ''
@@ -13,7 +15,7 @@ let
 
   mkDay = day:
     pkgs.runCommand "${day}.log" {
-      buildInputs = [ gnumake python310 ];
+      buildInputs = [ gnumake myPython ];
       src = ./${day};
     } ''
       cd $src
