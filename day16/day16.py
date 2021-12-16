@@ -5,7 +5,8 @@ from string import hexdigits
 from itertools import islice
 from more_itertools import peekable
 import operator
-from functools import reduce, wraps
+from functools import wraps
+from math import prod
 
 
 def to_bitstream(hex_stream):
@@ -85,10 +86,6 @@ def parse(source):
         yield packet
 
 
-def product(xs):
-    return reduce(operator.mul, xs)
-
-
 def fail(xs):
     assert False
 
@@ -99,7 +96,7 @@ def make_star(op):
 
 OPCODES = {
     0: sum,
-    1: product,
+    1: prod,
     2: min,
     3: max,
     4: fail,  # Unique case
