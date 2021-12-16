@@ -22,14 +22,6 @@ def take_int(n_bits, bitstream):
         raise ValueError("Not enough bits to take.") from e
 
 
-def is_empty(peekable):
-    try:
-        peekable.peek()
-    except StopIteration:
-        return True
-    return False
-
-
 def parse_packet(bitstream):
     def bits(n):
         return take_int(n, bitstream)
@@ -57,21 +49,23 @@ def parse_packet(bitstream):
             # Number of bits
             n_bits = bits(15)
             packets = []
-            sliced_stream = peekable(islice(bitstream, None, n_bits))
+            sliced_stream = peekable(islice(bitstream, n_bits))
 
-            while not is_empty(sliced_stream):
+            while sliced_stream:
                 pack = parse_packet(sliced_stream)
                 packets.append(pack)
-
-            return {**common, "packets": packets}
 
         elif length_type_id == 1:
             # Number of packets
             n_packets = bits(11)
-            return {
-                **common,
-                "packets": [parse_packet(bitstream) for _ in range(n_packets)],
-            }
+            packets = [parse_packet(bitstream) for _ in range(n_packets)]
+
+        else:
+            assert False  # How would this even happen?
+
+        assert all(packet is not None for packet in packets)
+
+        return {**common, "packets": packets}
 
     # There should've been a return at this point:
     assert False
@@ -134,12 +128,6 @@ def version_sum(packets):
         return n
     else:
         return sum(map(version_sum, packets))
-
-
-def solve(file):
-    packets = parse(file)
-
-    return sum(map(execute, packets))
 
 
 def getopts():
