@@ -3,124 +3,10 @@ from sys import stdin
 
 from string import hexdigits
 from itertools import islice
-from more_itertools import peekable
 import operator
 from functools import wraps
 from math import prod
-
-
-def to_bitstream(hex_stream):
-    for char in hex_stream:
-        for bit in f"{int(char, 16):04b}":
-            yield int(bit)
-
-
-def take_int(n_bits, bitstream):
-    try:
-        bits = (next(bitstream) for _ in range(n_bits))
-        return int("".join(str(b) for b in bits), 2)
-    except RuntimeError as e:
-        raise ValueError("Not enough bits to take.") from e
-
-
-def parse_packet(bitstream):
-    def bits(n):
-        return take_int(n, bitstream)
-
-    try:
-        version = bits(3)
-        type_id = bits(3)
-    except ValueError:
-        return None
-
-    common = {"version": version, "type_id": type_id}
-
-    if type_id == 4:
-        # Literal
-        xs = []
-        keep_going = True
-        while keep_going:
-            keep_going = bits(1)
-            xs.append(bits(4))
-        n = int("".join(hexdigits[i] for i in xs), 16)
-        return {**common, "value": n}
-    else:
-        length_type_id = bits(1)
-        if length_type_id == 0:
-            # Number of bits
-            n_bits = bits(15)
-            packets = []
-            sliced_stream = peekable(islice(bitstream, n_bits))
-
-            while sliced_stream:
-                pack = parse_packet(sliced_stream)
-                packets.append(pack)
-
-        elif length_type_id == 1:
-            # Number of packets
-            n_packets = bits(11)
-            packets = [parse_packet(bitstream) for _ in range(n_packets)]
-
-        else:
-            assert False  # How would this even happen?
-
-        assert all(packet is not None for packet in packets)
-
-        return {**common, "packets": packets}
-
-    # There should've been a return at this point:
-    assert False
-
-
-def parse(source):
-    if not isinstance(source, str):
-        source = source.read().strip()
-
-    hex_stream = iter(source)
-
-    while True:
-        packet = parse_packet(to_bitstream(hex_stream))
-
-        if packet is None:
-            break
-        yield packet
-
-
-def make_star(op):
-    return wraps(op)(lambda xs: op(*xs))
-
-
-OPCODES = {
-    0: sum,
-    1: prod,
-    2: min,
-    3: max,
-    4: None,  # Unique case
-    5: make_star(operator.gt),
-    6: make_star(operator.lt),
-    7: make_star(operator.eq),
-}
-
-
-def execute(packet):
-    assert packet["type_id"] in OPCODES
-
-    if packet["type_id"] == 4:
-        return packet["value"]
-
-    subpackets = map(execute, packet["packets"])
-    value = OPCODES[packet["type_id"]](subpackets)
-
-    return value
-
-
-def version_sum(packets):
-    if isinstance(packets, dict):
-        n = packets["version"]
-        n += version_sum(packets.get("packets", []))
-        return n
-    else:
-        return sum(map(version_sum, packets))
+from common import timer, BITSPacket
 
 
 def getopts():
@@ -134,11 +20,18 @@ def getopts():
 def main():
     opts = getopts()
     for file in opts.files:
-        packets = parse(file)
-        if opts.version_sum:
-            print(version_sum(packets))
-        else:
-            print(sum(map(execute, packets)))
+        with timer("day 16"):
+            s = file.read().strip()
+            packet = BITSPacket.from_hex(s)
+            print(packet)
+            xs = {(p.version, p.type) for p in packet.descendants}
+            ys = {(a, b) for a in range(8) for b in range(8) if (a, b) not in xs}
+            print(ys)
+            if opts.version_sum:
+                print(packet.version_sum)
+            else:
+                print(packet.code)
+                print(packet.value)
 
 
 if __name__ == "__main__":

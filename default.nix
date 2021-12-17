@@ -4,7 +4,12 @@ let
 
   inherit (pkgs) lib jq runCommand python310 gnumake;
 
-  myPython = python310.withPackages (p: with p; [more-itertools]);
+  myPython = python310.withPackages (p: with p; [more-itertools rich]);
+
+  common = pkgs.runCommand "common" {} ''
+    mkdir -p $out
+    cp -r ${./common} $out/common
+  '';
 
   src = ./.;
   days = lib.importJSON
@@ -18,6 +23,8 @@ let
       buildInputs = [ gnumake myPython ];
       src = ./${day};
     } ''
+      export PYTHONPATH="${common}:$PYTHONPATH"
+      echo $PYTHONPATH
       cd $src
       make | tee $out
     '';
