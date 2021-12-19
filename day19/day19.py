@@ -5,6 +5,7 @@ from itertools import product, permutations, combinations
 import numpy as np
 from collections import defaultdict
 from pprint import pprint
+from collections import Counter
 
 try:
     from tqdm import tqdm
@@ -44,6 +45,16 @@ def apply(transformation, scanner):
 def translate(point, scanner):
     dx, dy, dz = point
     return frozenset((x - dx, y - dy, z - dz) for x, y, z in scanner)
+
+
+def distance_pairs(scanner):
+    return Counter(distance(*ps) for ps in combinations(scanner, 2))
+
+
+def feasible(s1, s2):
+    c1, c2 = map(distance_pairs, [s1, s2])
+    sigma = sum((c1 & c2).values())
+    return sigma >= (12 * (12 - 1)) // 2
 
 
 def match(s1, s2, n=12):
@@ -119,6 +130,9 @@ def search(scanners):
         if i1 == i2:
             continue
 
+        if not feasible(s1, s2):
+            continue
+
         for ir, rotation in enumerate(ROTATIONS):
             s2t = apply(rotation, s2)
             p = match(s1, s2t)
@@ -129,14 +143,15 @@ def search(scanners):
 
             # inv = inverse(ir)
             # inv_p, = apply(ROTATIONS[inv], {p})
+            # inv_p, = apply(rotation, {p})
             d[i1].append((i2, ir, p))
-            # d[i2].append((i1, inv, p @ ))
+            # d[i2].append((i1, inv, inv_p))
 
     return dict(d)
 
 
-def manhattan_distance(p1, p2):
-    return sum(abs(a - b) for (a, b) in zip(p1, p2))
+def distance(p1, p2, d=2):
+    return sum(abs(a - b) ** d for (a, b) in zip(p1, p2))
 
 
 def solve(file):
@@ -151,10 +166,10 @@ def solve(file):
     scanner_locs = actual_locs(xs, network)
     max_pts = max(
         product(scanner_locs.values(), repeat=2),
-        key=lambda x: manhattan_distance(*x),
+        key=lambda x: distance(*x, d=1),
     )
     print(max_pts)
-    print(manhattan_distance(*max_pts))
+    print(distance(*max_pts, d=1))
 
 
 def getopts():
