@@ -40,7 +40,7 @@ def getopts():
         dest="withAim",
         action="store_true",
     )
-    
+
     parser.add_argument(
         "files",
         type=argparse.FileType("r"),

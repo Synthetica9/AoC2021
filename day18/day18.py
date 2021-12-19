@@ -12,7 +12,6 @@ from typing import Optional, Tuple, Union
 from dataclasses import dataclass
 
 
-
 @dataclass
 class SnailFishNum:
     value: Union[int, Tuple["SnailFishNum", "SnailFishNum"]]
@@ -139,7 +138,6 @@ def explode(t):
         lc = st.left_cousin
         rc = st.right_cousin
 
-
         assert lc is not None or rc is not None
 
         if lc is not None:
@@ -190,6 +188,7 @@ examples = [
 for a, b in examples:
     assert run(a) == b
 
+
 def solve(file):
     parsed = parse(file)
 
@@ -202,14 +201,13 @@ def solve(file):
 
     print(SnailFishNum.from_list(curr).magnitude)
 
-    mm = (max(
+    mm = max(
         ([x, y] for x, y in product(parsed, repeat=2) if x != y),
         key=lambda p: SnailFishNum.from_list(run(p)).magnitude,
-    ))
+    )
 
-    print(*mm, sep='\n')
+    print(*mm, sep="\n")
     print(SnailFishNum.from_list(run(mm)).magnitude)
-
 
 
 def parse(file):
@@ -220,6 +218,7 @@ def parse(file):
             continue
         xs.append(json.loads(line))
     return xs
+
 
 def getopts():
     opts = ArgumentParser()

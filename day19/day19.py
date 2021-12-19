@@ -114,7 +114,8 @@ def inverse(ir):
 def search(scanners):
     d = defaultdict(list)
     for (i1, s1), (i2, s2) in tqdm(
-        product(enumerate(scanners), repeat=2), total=len(scanners) ** 2):
+        product(enumerate(scanners), repeat=2), total=len(scanners) ** 2
+    ):
         if i1 == i2:
             continue
 
@@ -125,7 +126,6 @@ def search(scanners):
                 continue
 
             assert match(s2t, s1)
-
 
             # inv = inverse(ir)
             # inv_p, = apply(ROTATIONS[inv], {p})
