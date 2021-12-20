@@ -2,24 +2,11 @@ from argparse import ArgumentParser, FileType
 from sys import stdin
 
 from itertools import product
-from functools import cache
 
-try:
-    from tqdm import tqdm
-except ImportError:
-    def tqdm(arg, *args, **kwargs):
-        return arg
+from functools import cache
 
 RANGE = 1
 N_BITS = (2 * RANGE + 1) ** 2
-
-
-def stripped(file):
-    for line in file:
-        line = line.strip()
-        if not line:
-            continue
-        yield line
 
 
 def parse(file):
@@ -27,12 +14,13 @@ def parse(file):
     assert len(repl) == 2 ** N_BITS
 
     grid = set()
-    for x, line in enumerate(stripped(file)):
+    for x, line in enumerate(file):
         for y, c in enumerate(line):
-            if c != ".":
+            if c == "#":
                 grid.add((x, y))
 
     return repl, grid
+
 
 @cache
 def neighbors(p):
@@ -53,42 +41,33 @@ def bounds(grid):
     return (min_x, min_y), (max_x, max_y)
 
 
-def points(grid):
-    (min_x, min_y), (max_x, max_y) = bounds(grid)
-    yield from (
-        (x, y) for x in range(min_x - 5, max_x + 5) for y in range(min_y - 2, max_y + 2)
-    )
-
-
 def to_int(grid, points, neg=False):
     bitstring = "".join(str(int((p in grid) ^ neg)) for p in points)
     return int(bitstring, 2)
 
 
-def dump_grid(grid, neg=False):
-    (min_x, min_y), (max_x, max_y) = bounds(grid)
-
-    for x in range(min_x - 3, max_x + 3):
-        for y in range(min_y - 3, max_y + 3):
-            print("#" if ((x, y) in grid) ^ neg else ".", end="")
-        print()
-
-
 def solve(file, passes=50):
     repl, grid = parse(file)
 
-    neg = False
+    @cache
+    def get_point(t, x, y):
+        if t == 0:
+            return (x, y) in grid
 
-    for _ in tqdm(range(passes)):
-        # dump_grid(grid, neg)
-        prev_neg = neg
-        neg = repl[0] if not prev_neg else repl[-1]
-        grid = {p for p in points(grid) if neg ^ repl[to_int(grid, neighbors(p), prev_neg)]}
+        n = sum(
+            1 << c
+            for c, p in enumerate(reversed(neighbors((x, y))))
+            if get_point(t - 1, *p)
+        )
 
+        return repl[n]
 
-    dump_grid(grid, neg)
-    assert not neg
-    print(len(grid))
+    (min_x, min_y), (max_x, max_y) = bounds(grid)
+    return sum(
+        get_point(passes, x, y)
+        for x in range(min_x - passes, max_x + passes + 1)
+        for y in range(min_y - passes, max_y + passes + 1)
+    )
 
 
 def getopts():
