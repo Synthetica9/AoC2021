@@ -41,11 +41,6 @@ def bounds(grid):
     return (min_x, min_y), (max_x, max_y)
 
 
-def to_int(grid, points, neg=False):
-    bitstring = "".join(str(int((p in grid) ^ neg)) for p in points)
-    return int(bitstring, 2)
-
-
 def solve(file, passes=50):
     repl, grid = parse(file)
 
