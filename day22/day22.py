@@ -63,32 +63,15 @@ class Cuboid:
         assert d in {1, -1}
         d1, d2 = {1: (0, d), -1: (d, 0)}[d]
 
-        assert d1 < d2
+        n1 = dict(zip('xyz', self.dims))
+        n2 = n1.copy()
 
-        x, y, z = self.dims
-        x1, y1, z1 = self.dims
-        x2, y2, z2 = self.dims
+        a = getattr(self, axis)
+        assert a[0] <= value + d1 < value + d2 <= a[1]
+        n1[axis] = (a[0], value + d1)
+        n2[axis] = (value + d2, a[1])
 
-        if axis == "x":
-            assert x[0] <= value + d1 < value + d2 <= x[1], f"{x} {value}"
-            x1 = (x[0], value + d1)
-            x2 = (value + d2, x[1])
-
-        elif axis == "y":
-            assert y[0] <= value + d1 < value + d2 <= y[1]
-            y1 = (y[0], value + d1)
-            y2 = (value + d2, y[1])
-
-        elif axis == "z":
-            assert z[0] <= value + d1 < value + d2 <= z[1]
-            z1 = (z[0], value + d1)
-            z2 = (value + d2, z[1])
-
-        else:
-            raise ValueError(f"Unknown axis {axis}")
-
-        c1 = Cuboid(x1, y1, z1, self.fill)
-        c2 = Cuboid(x2, y2, z2, self.fill)
+        c1, c2 = (Cuboid(*(n[k] for k in 'xyz'), self.fill) for n in (n1, n2))
 
         assert not c1.intersects(c2), f"{c1} intersects with {c2}"
         return [c1, c2]
