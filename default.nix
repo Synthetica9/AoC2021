@@ -4,7 +4,7 @@ let
 
   inherit (pkgs) lib jq runCommand python310 gnumake;
 
-  myPython = python310.withPackages (p: with p; [more-itertools rich numpy]);
+  myPython = python310.withPackages (p: with p; [more-itertools rich numpy networkx]);
 
   common = pkgs.runCommand "common" {} ''
     mkdir -p $out
