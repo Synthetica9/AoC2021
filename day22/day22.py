@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import itertools as it
 from collections import defaultdict
 from math import prod
+import bisect
 
 import networkx as nx
 
@@ -141,13 +142,22 @@ def parse(file):
 
 
 def parse_dag(file, boundry=None):
+    parsed = list(parse(file))
+    sort_key = lambda c: c.x[1]
+    in_order = sorted(parsed, key=sort_key)
+
     dag = nx.DiGraph()
-    for cuboid in parse(file):
+    for cuboid in parsed:
         if boundry is not None and not boundry.fully_encloses(cuboid):
             continue
         dag.add_node(cuboid)
-        for other in dag.nodes():
-            if other == cuboid:
+
+        i = bisect.bisect_left(in_order, cuboid.x[0], key=sort_key)
+        while i < len(in_order) and cuboid.x[0] <= in_order[i].x[1]:
+            other = in_order[i]
+            i+= 1
+
+            if other == cuboid or other not in dag:
                 continue
 
             if cuboid.intersects(other):
@@ -170,7 +180,6 @@ def to_disjoint(G):
                 continue
 
             split_on = candidates[0]
-            # print(split_on)
 
             new_nodes = split_on.split(node)
 
@@ -179,7 +188,6 @@ def to_disjoint(G):
                 (a, b) for a in new_nodes for b in candidates if a.intersects(b)
             )
 
-    # assert not any(a.intersects(b) for (a, b) in it.combinations(res, 2))
     return res
 
 
