@@ -53,17 +53,21 @@ class Cuboid:
             yield tuple(sorted([c1, c2]))
 
     def intersects(self, other):
-        return self.fully_encloses(other) or other.fully_encloses(self) or any(
-            a.intersects_edge(e)
-            for (a, b) in it.permutations([self, other])
-            for e in b.edges
+        return (
+            self.fully_encloses(other)
+            or other.fully_encloses(self)
+            or any(
+                a.intersects_edge(e)
+                for (a, b) in it.permutations([self, other])
+                for e in b.edges
+            )
         )
 
     def chop_along(self, axis, value, d):
         assert d in {1, -1}
         d1, d2 = {1: (0, d), -1: (d, 0)}[d]
 
-        n1 = dict(zip('xyz', self.dims))
+        n1 = dict(zip("xyz", self.dims))
         n2 = n1.copy()
 
         a = getattr(self, axis)
@@ -71,7 +75,7 @@ class Cuboid:
         n1[axis] = (a[0], value + d1)
         n2[axis] = (value + d2, a[1])
 
-        c1, c2 = (Cuboid(*(n[k] for k in 'xyz'), self.fill) for n in (n1, n2))
+        c1, c2 = (Cuboid(*(n[k] for k in "xyz"), self.fill) for n in (n1, n2))
 
         assert not c1.intersects(c2), f"{c1} intersects with {c2}"
         return [c1, c2]
@@ -111,6 +115,7 @@ class Cuboid:
     @property
     def volume(self):
         return prod(b - a + 1 for (a, b) in self.dims)
+
 
 def parse(file):
     for line in file:
@@ -188,7 +193,6 @@ def solve(file, boundry=None):
 
     res = sum(x.volume for x in fills if x.fill)
     print(res)
-
 
 
 def getopts():
