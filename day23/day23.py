@@ -52,11 +52,44 @@ ENERGY_COSTS = {
 
 
 @cache
-def dist_to_target(c, p):
+def dist_to_target(c, p, spaces):
     if p in FINAL_LOCATIONS[c]:
         return 0
 
-    return DISTANCE_PAIRS[p, FINAL_LOCATIONS[c][0]]
+    return distance(p, FINAL_LOCATIONS[c][0], spaces)
+
+
+def reachable_squares(p, spaces, configuration, seen=None):
+    if seen is None:
+        seen = set()
+
+    for n in neighbors(p):
+        if n not in spaces or n in configuration or n in seen:
+            continue
+        seen.add(n)
+        yield n
+        yield from reachable_squares(n, spaces, configuration, seen)
+
+
+def connected_group(p, configuration, seen=None):
+    if seen is None:
+        seen = set()
+
+    seen.add(p)
+    yield p
+    for p2 in neighbors(p):
+        if p2 not in seen and p2 in configuration:
+            yield from connected_group(p2, configuration, seen)
+
+
+@cache
+def is_hallway(p):
+    return p[0] == 1
+
+
+@cache
+def is_resting_place(p):
+    return is_hallway(p) and p[1] not in (c[0][1] for c in FINAL_LOCATIONS.values())
 
 
 def step(spaces, configuration):
@@ -65,31 +98,47 @@ def step(spaces, configuration):
     """
 
     for point, c in configuration.items():
-        for n in neighbors(point):
-            # You never need to move to the second space of a tunnel if you don't belong there...
-            if n in [FINAL_LOCATIONS[o][-1] for o in "ABCD" if o != c]:
+        if point in FINAL_LOCATIONS[c] and not any(
+            p2 > point and configuration.get(p2) != c
+            for p2 in FINAL_LOCATIONS[c]
+            if p2 in spaces
+        ):
+            continue
+
+        reachable = list(reachable_squares(point, spaces, configuration))
+
+        for p in reachable:
+            if p == point:
                 continue
 
-            # In the main cavern, don't ever move away from your destination unless someone is pushing you...
-            # TODO
-
-            if n not in spaces:
+            # Can't move into a foreign space!
+            if not is_resting_place(p) and p not in FINAL_LOCATIONS[c]:
                 continue
 
-            if dist_to_target(c, n) >= dist_to_target(c, point):
-                group = list(connected_group(point, configuration))
-                for a in group:
-                    ca = configuration[a]
-                    if dist_to_target(ca, point) < dist_to_target(ca, a):
-                        break
-                else:
-                    continue
+            # Can't move into a tube if there are foreign occupants!
+            if p in FINAL_LOCATIONS[c] and not all(
+                configuration.get(p2, c) == c
+                for p2 in FINAL_LOCATIONS[c]
+                if p2 in spaces
+            ):
+                continue
 
-            if n not in configuration:
-                s = configuration.copy()
-                del s[point]
-                s[n] = c
-                yield s, ENERGY_COSTS[c]
+            # Can't wiggle around in the hallways!
+            if is_hallway(p) and is_hallway(point):
+                continue
+
+            # Only move into the last spot of a room
+            if p in FINAL_LOCATIONS[c] and any(
+                p2 > p and p2 not in configuration
+                for p2 in FINAL_LOCATIONS[c]
+                if p2 in spaces
+            ):
+                continue
+
+            conf_copy = configuration.copy()
+            del conf_copy[point]
+            conf_copy[p] = c
+            yield conf_copy, distance(p, point, spaces) * ENERGY_COSTS[c]
 
 
 FINAL_LOCATIONS = {
@@ -98,41 +147,59 @@ FINAL_LOCATIONS = {
     "C": [(2, 7), (3, 7), (4, 7), (5, 7)],
     "D": [(2, 9), (3, 9), (4, 9), (5, 9)],
 }
+# FINAL_LOCATIONS = {
+#     "A": [(2, 3), (3, 3)],
+#     "B": [(2, 5), (3, 5)],
+#     "C": [(2, 7), (3, 7)],
+#     "D": [(2, 9), (3, 9)],
+# }
 
 
 def is_final(configuration):
     for p, c in configuration.items():
         if p not in FINAL_LOCATIONS[c]:
             return False
-    assert heuristic(configuration) == 0
+    # assert heuristic(configuration) == 0
     return True
 
 
 DISTANCE_PAIRS = None
 
 
-def heuristic(configuration):
-    cost = 0
-    for c, ps in FINAL_LOCATIONS.items():
-        throat = ps[0]
-        throat = (throat[0] - 1, throat[1])
+@cache
+def path_find(a, b, spaces):
+    seen = set()
 
-        for i, p in enumerate([throat] + ps):
-            present = []
-            if p not in configuration:
+    def do_find(a, b):
+        if a in seen:
+            return
+        seen.add(a)
+        if a == b:
+            yield []
+        for n in neighbors(a):
+            if n not in spaces:
                 continue
-            if configuration[p] == c:
-                present.append(p)
-            else:
-                # Everything above has to migrate out again...
-                for p0 in present:
-                    cost += ENERGY_COSTS[c] * (DISTANCE_PAIRS[p0, throat] + 1)
-                break
+            for path in do_find(n, b):
+                yield [n] + path
+
+    return min(do_find(a, b), key=len)
+
+
+def heuristic(configuration, spaces):
+    cost = 0
 
     for c in "ABCD":
         c_locs = [p for p, c2 in configuration.items() if c2 == c]
-        cost += ENERGY_COSTS[c] * min(
-            sum(DISTANCE_PAIRS[a, b] for a, b in zip(perm, FINAL_LOCATIONS[c]))
+        cost += min(
+            sum(
+                sum(
+                    ENERGY_COSTS[configuration[c2]]
+                    for c2 in path_find(a, b, spaces)
+                    if c2 in configuration
+                )
+                + distance(a, b, spaces) * ENERGY_COSTS[c]
+                for a, b in zip(perm, FINAL_LOCATIONS[c])
+            )
             for perm in itertools.permutations(c_locs)
         )
 
@@ -147,27 +214,9 @@ def from_hashable(configuration):
     return dict(configuration)
 
 
-def distances(spaces):
-    d = {}
-    for point in spaces:
-        d[(point, point)] = 0
-        for n in neighbors(point):
-            if n not in spaces:
-                continue
-            d[(point, n)] = 1
-
-    def dist(a, b):
-        return d.get((a, b), float("inf"))
-
-    changed = True
-    while changed:
-        changed = False
-        for abc in itertools.combinations(spaces, 3):
-            for a, b, c in itertools.permutations(abc):
-                if dist(a, b) + dist(b, c) < dist(a, c):
-                    d[a, c] = dist(a, b) + dist(b, c)
-                    changed = True
-    return d
+@cache
+def distance(a, b, spaces):
+    return len(path_find(a, b, spaces))
 
 
 def to_string(configuration, spaces):
@@ -180,41 +229,29 @@ def to_string(configuration, spaces):
     return s.strip()
 
 
-def connected_group(p, configuration, seen=None):
-    if seen is None:
-        seen = set()
-
-    seen.add(p)
-    yield p
-    for p2 in neighbors(p):
-        if p2 not in seen and p2 in configuration:
-            yield from connected_group(p2, configuration, seen)
-
-
 def a_star(configuration, spaces):
     """
     A* search.
     """
-    best = heuristic(configuration)
+    best = heuristic(configuration, spaces)
     open = [(best, 0, to_hashable(configuration))]
     closed = set()
 
     for i in tqdm(itertools.count()):
         if not open:
+            print("\n\noptions exhausted after {} steps".format(i))
             return None
 
         # To get accurate tqdm stats:
         _, real_cost, configuration = heapq.heappop(open)
-        while configuration in closed:
-            _, real_cost, configuration = heapq.heappop(open)
 
         configuration = from_hashable(configuration)
 
-        if heuristic(configuration) < best:
+        if heuristic(configuration, spaces) < best:
             print()
             print(to_string(configuration, spaces))
             print(len(open), len(closed), real_cost)
-            best = heuristic(configuration)
+            best = heuristic(configuration, spaces)
 
         # if count_finals(configuration) > best_finals:
         #     print()
@@ -239,7 +276,7 @@ def a_star(configuration, spaces):
                     open,
                     (
                         (
-                            real_cost + cost + heuristic(config),
+                            real_cost + cost + heuristic(config, spaces),
                             real_cost + cost,
                             to_hashable(config),
                         )
@@ -247,13 +284,17 @@ def a_star(configuration, spaces):
                 )
 
         closed.add(to_hashable(configuration))
+
     return None
 
 
 def solve(file):
     spaces, start = parse(file)
-    global DISTANCE_PAIRS
-    DISTANCE_PAIRS = distances(spaces)
+    spaces = frozenset(spaces)
+    print(spaces)
+
+    for k in start:
+        print(k, *reachable_squares(k, spaces, start))
 
     # print(spaces, start)
     # print(is_final(start))
